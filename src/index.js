@@ -85,9 +85,17 @@ app.post('/messages', async (req, res) => {
 });
 
 app.get('/messages', async (req,res) => {
+    const {limit} = req.query;
+    
     try{
         const messages = await db.collection('messages').find({}).toArray();
-        res.send(messages);
+        
+        if(!limit) {
+            res.send(messages);
+        } else {
+            const messageLimited = messages.reverse().splice(0, limit);
+            res.send(messageLimited.reverse());
+        }
     } catch(error){
         res.status(500).send('Não foi possível obter as mensagens');
     }
