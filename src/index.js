@@ -139,7 +139,6 @@ app.get('/messages', async (req,res) => {
         
         if(limit <= 0) return res.status(422).send('Limite de mensagens inválido');    
 
-        //const messages = await db.collection('messages').find({$or:[{to: 'Todos'}, {to: user}, {from: user}]}).toArray();
         const messages = await db.collection("messages").find({
             $or: [
                 { type: 'message' },
