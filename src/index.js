@@ -40,7 +40,7 @@ setInterval(async () => {
             to: 'Todos',
             text: 'sai da sala ...',
             type: 'status',
-            time: dayjs(period).format('HH:MM:SS')
+            time: dayjs(period).format('HH:mm:ss')
         };
         await db.collection('participants').deleteOne(validate);
         await db.collection('messages').insertOne(message);
@@ -50,7 +50,7 @@ setInterval(async () => {
 app.post('/participants', async (req,res) => {
     const {name} = req.body;
     const period = Date.now();
-    const time = dayjs(period).format('HH:MM:SS');
+    const time = dayjs(period).format('HH:mm:ss');
 
     const userSchema = joi.object({
         name: joi.string().required()
@@ -98,7 +98,7 @@ app.get('/participants', async (req, res) => {
 app.post('/messages', async (req, res) => {
     const {to, text, type} = req.body; 
     const {user} = req.headers;
-    const time = dayjs(Date.now()).format('HH:MM:SS');
+    const time = dayjs(Date.now()).format('HH:mm:ss');
     
     const messageSchema = joi.object({
         from: joi.string(),
@@ -143,10 +143,10 @@ app.get('/messages', async (req,res) => {
 
         if(!limit) {
             const messageLimited = messages.reverse().splice(0, 100);
-            res.send(messageLimited.reverse());
+            res.send(messageLimited);
         } else{
             const messageLimited = messages.reverse().splice(0, limit);
-            res.send(messageLimited.reverse());
+            res.send(messageLimited);
         }
     } catch(error){
         res.status(500).send('Não foi possível obter as mensagens');
