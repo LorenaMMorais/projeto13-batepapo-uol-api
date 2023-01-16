@@ -2,7 +2,7 @@ import express, {json} from 'express';
 import cors from 'cors';
 import {MongoClient} from 'mongodb';
 import dotenv from 'dotenv';
-//import joi from 'joi';
+import joi from 'joi';
 import chalk from 'chalk';
 import dayjs from 'dayjs';
 
@@ -27,7 +27,24 @@ mongoClient.connect()
         console.log(chalk.red.bold('Banco não conectou'))
     )
 
-const messages = [];
+setInterval(async () => {
+    const participants = await db.collection('participants').find({}).toArray();
+    const period = Date.now();
+    const validate = participants.find(participant => {
+        if(period - participant.lastStatus > 10000) return participant;
+    });
+    if(validate !== undefined){
+        const message = {
+            from: validate.name,
+            to: 'Todos',
+            text: 'sai da sala ...',
+            type: 'status',
+            time: dayjs(period).format('HH:mm:ss')
+        };
+        await db.collection('participants').deleteOne(validate);
+        await db.collection('messages').insertOne(message);
+    }
+}, 15000);
 
 app.post('/participants', async (req,res) => {
     const {name} = req.body;
@@ -86,9 +103,10 @@ app.post('/messages', async (req, res) => {
 
 app.get('/messages', async (req,res) => {
     const {limit} = req.query;
-    
+    const {user} = req.headers;
+
     try{
-        const messages = await db.collection('messages').find({}).toArray();
+        const messages = await db.collection('messages').find({$or:[{to: 'Todos'}, {to: user}, {from: user}]}).toArray();
         
         if(!limit) {
             const messageLimited = messages.reverse().splice(0, 100);
