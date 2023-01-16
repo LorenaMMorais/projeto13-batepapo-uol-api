@@ -27,12 +27,17 @@ mongoClient.connect()
         console.log(chalk.red.bold('Banco não conectou'))
     )
 
+const userSchema = joi.object({
+    name: joi.string().required()
+});
+
 setInterval(async () => {
     const participants = await db.collection('participants').find({}).toArray();
     const period = Date.now();
     const validate = participants.find(participant => {
         if(period - participant.lastStatus > 10000) return participant;
     });
+
     if(validate !== undefined){
         const message = {
             from: validate.name,
@@ -48,6 +53,7 @@ setInterval(async () => {
 
 app.post('/participants', async (req,res) => {
     const {name} = req.body;
+    const validation = userSchema.validate({name});
     const period = Date.now();
     const time = dayjs(period).format('HH:mm:ss');
     const participant = {
@@ -62,6 +68,13 @@ app.post('/participants', async (req,res) => {
         time: time
     };
 
+    const participants = await db.collection('participants').find({}).toArray();
+    const isParticipant = participants.some(participant => participant.name === name);
+
+    if(validation.error) return res.status(422).send(validation.error.details[0].message);
+
+    if(isParticipant) return res.status(409).send('Participante já existe');
+    
     try{
         await db.collection('participants').insertOne({participant});
         await db.collection('messages').insertOne({message});
