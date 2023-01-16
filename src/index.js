@@ -20,7 +20,7 @@ let db;
 
 mongoClient.connect()
     .then(() => {
-        db = mongoClient.db('projeto13-batepapo-uol-api');
+        db = mongoClient.db();
         console.log(chalk.green.bold('Banco conectado')); 
     })
     .catch(() => 
