@@ -40,7 +40,7 @@ setInterval(async () => {
             to: 'Todos',
             text: 'sai da sala ...',
             type: 'status',
-            time: dayjs(period).format('HH:mm:ss')
+            time: dayjs(period).format('HH:MM:SS')
         };
         await db.collection('participants').deleteOne(validate);
         await db.collection('messages').insertOne(message);
@@ -50,7 +50,7 @@ setInterval(async () => {
 app.post('/participants', async (req,res) => {
     const {name} = req.body;
     const period = Date.now();
-    const time = dayjs(period).format('HH:mm:ss');
+    const time = dayjs(period).format('HH:MM:SS');
 
     const userSchema = joi.object({
         name: joi.string().required()
@@ -98,12 +98,12 @@ app.get('/participants', async (req, res) => {
 app.post('/messages', async (req, res) => {
     const {to, text, type} = req.body; 
     const {user} = req.headers;
-    const time = dayjs(Date.now()).format('HH:mm:ss');
+    const time = dayjs(Date.now()).format('HH:MM:SS');
     
     const messageSchema = joi.object({
         from: joi.string(),
         to: joi.string().required(), 
-        text: joi.string().min(2).required(), 
+        text: joi.string().min(1).required(), 
         type: joi.string().valid('message', 'private_message'),
         time: joi.string() 
     });
@@ -134,14 +134,17 @@ app.post('/messages', async (req, res) => {
 app.get('/messages', async (req,res) => {
     const {limit} = req.query;
     const {user} = req.headers;
-
+    
+    
     try{
         const messages = await db.collection('messages').find({$or:[{to: 'Todos'}, {to: user}, {from: user}]}).toArray();
         
+        if(limit <= 0 || isNaN(limit)) return res.status(422).send('Limite de mensagens inválido');
+
         if(!limit) {
             const messageLimited = messages.reverse().splice(0, 100);
             res.send(messageLimited.reverse());
-        } else {
+        } else{
             const messageLimited = messages.reverse().splice(0, limit);
             res.send(messageLimited.reverse());
         }
@@ -154,10 +157,8 @@ app.post('/status', async (req, res) => {
     const {user} = req.headers;
     const participant = await db.collection('participants').findOne({name: user});
     
-    if(!participant){
-        res.sendStatus(404);
-        return;
-    } 
+    if(!participant) return res.sendStatus(404);
+
     await db.collection('participants').updateOne({name: user},{$set: {"lastStatus": Date.now()}});
     res.sendStatus(200);
 });
