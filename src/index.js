@@ -4,6 +4,7 @@ import {MongoClient} from 'mongodb';
 import dotenv from 'dotenv';
 //import joi from 'joi';
 import chalk from 'chalk';
+import dayjs from 'dayjs';
 
 dotenv.config();
 
@@ -30,12 +31,23 @@ const messages = [];
 
 app.post('/participants', async (req,res) => {
     const {name} = req.body;
-    
+    const period = Date.now();
+    const time = dayjs(period).format('HH:mm:ss');
+    const participant = {
+        name: name,
+        lastStatus: period
+    };
+    const message = {
+        from: name,
+        to: 'Todos',
+        text: 'entra na sala...',
+        type: 'status',
+        time: time
+    };
+
     try{
-        await db.collection('participants').insertOne({
-            name: name,
-            lastStatus: Date.now()
-        });
+        await db.collection('participants').insertOne({participant});
+        await db.collection('messages').insertOne({message});
         res.sendStatus(201);
     } catch(error){
         res.status(422).send('Não foi possível cadastrar o participante');
@@ -55,7 +67,7 @@ app.post('/messages', async (req, res) => {
     const {to, text, type} = req.body; 
     const {user} = req.headers;
     const time = dayjs(Date.now()).format('HH:mm:ss');
-
+    
     const message = {
         from: user,
         to: to, 
@@ -83,14 +95,14 @@ app.get('/messages', async (req,res) => {
 
 app.post('/status', async (req, res) => {
     const {user} = req.headers;
-    const validate = await db.collection('participants').find({name: user}).toArray();
-
-    if(validate.length === 0){
+    const participant = await db.collection('participants').findOne({name: user});
+    
+    if(!participant){
         res.sendStatus(404);
-    } else {
-        validate[0].lastStatus = Date.now();
-        res.sendStatus(200);
-    }
+        return;
+    } 
+    await db.collection('participants').updateOne({name: user},{$set: {"lastStatus": Date.now()}});
+    res.sendStatus(200);
 });
 
 app.listen(PORT, () => {
