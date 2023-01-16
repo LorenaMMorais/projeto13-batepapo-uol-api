@@ -42,9 +42,9 @@ app.post('/participants', async (req,res) => {
     }
 });
 
-app.get('/participants', (req, res) => {
+app.get('/participants', async (req, res) => {
     try{
-        const participants = db.collection('participants').find({}).toArray();
+        const participants = await db.collection('participants').find({}).toArray();
         res.send(participants);
     } catch(error){
         res.status(500).send('Não foi possível obter participantes');
@@ -53,17 +53,32 @@ app.get('/participants', (req, res) => {
 
 app.post('/messages', async (req, res) => {
     const {to, text, type} = req.body; 
+    const {user} = req.headers;
+    const time = dayjs(Date.now()).format('HH:mm:ss');
+
     const message = {
-        to: 'Todos', 
-        text: 'oi galera', 
-        type: 'message', 
+        from: user,
+        to: to, 
+        text: text, 
+        type: type,
+        time: time 
     };
-    messages.push(message);
-    res.sendStatus(201);
+    
+    try{
+        await db.collection('messages').insertOne(message);
+        res.sendStatus(201);
+    } catch(error){
+        res.status(422).send('Não foi possível enviar a mensagem');
+    }
 });
 
-app.get('/messages', (req,res) => {
-    res.send(messages);
+app.get('/messages', async (req,res) => {
+    try{
+        const messages = await db.collection('messages').find({}).toArray();
+        res.send(messages);
+    } catch(error){
+        res.status(500).send('Não foi possível obter as mensagens');
+    }
 });
 
 app.post('/status', (req, res) => {
