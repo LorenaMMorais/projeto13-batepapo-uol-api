@@ -91,7 +91,8 @@ app.get('/messages', async (req,res) => {
         const messages = await db.collection('messages').find({}).toArray();
         
         if(!limit) {
-            res.send(messages);
+            const messageLimited = messages.reverse().splice(0, 100);
+            res.send(messageLimited.reverse());
         } else {
             const messageLimited = messages.reverse().splice(0, limit);
             res.send(messageLimited.reverse());
