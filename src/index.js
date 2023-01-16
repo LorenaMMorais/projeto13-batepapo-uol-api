@@ -135,11 +135,10 @@ app.get('/messages', async (req,res) => {
     const {limit} = req.query;
     const {user} = req.headers;
     
+    if(limit <= 0 || isNaN(limit)) return res.status(422).send('Limite de mensagens inválido');
     
     try{
         const messages = await db.collection('messages').find({$or:[{to: 'Todos'}, {to: user}, {from: user}]}).toArray();
-        
-        if(limit <= 0 || isNaN(limit)) return res.status(422).send('Limite de mensagens inválido');
 
         if(!limit) {
             const messageLimited = messages.reverse().splice(0, 100);
