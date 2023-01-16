@@ -27,10 +27,6 @@ mongoClient.connect()
         console.log(chalk.red.bold('Banco não conectou'))
     )
 
-const userSchema = joi.object({
-    name: joi.string().required()
-});
-
 setInterval(async () => {
     const participants = await db.collection('participants').find({}).toArray();
     const period = Date.now();
@@ -53,9 +49,15 @@ setInterval(async () => {
 
 app.post('/participants', async (req,res) => {
     const {name} = req.body;
-    const validation = userSchema.validate({name});
     const period = Date.now();
     const time = dayjs(period).format('HH:mm:ss');
+
+    const userSchema = joi.object({
+        name: joi.string().required()
+    });
+
+    const validation = userSchema.validate({name});
+    
     const participant = {
         name: name,
         lastStatus: period
@@ -76,8 +78,8 @@ app.post('/participants', async (req,res) => {
     if(isParticipant) return res.status(409).send('Participante já existe');
     
     try{
-        await db.collection('participants').insertOne({participant});
-        await db.collection('messages').insertOne({message});
+        await db.collection('participants').insertOne(participant);
+        await db.collection('messages').insertOne(message);
         res.sendStatus(201);
     } catch(error){
         res.status(422).send('Não foi possível cadastrar o participante');
@@ -98,6 +100,14 @@ app.post('/messages', async (req, res) => {
     const {user} = req.headers;
     const time = dayjs(Date.now()).format('HH:mm:ss');
     
+    const messageSchema = joi.object({
+        from: joi.string(),
+        to: joi.string().required(), 
+        text: joi.string().min(2).required(), 
+        type: joi.string().valid('message', 'private_message'),
+        time: joi.string() 
+    });
+
     const message = {
         from: user,
         to: to, 
@@ -106,6 +116,13 @@ app.post('/messages', async (req, res) => {
         time: time 
     };
     
+    const participant = await db.collection('participants').findOne({name: user});
+    const validation = messageSchema.validate(message);
+
+    if(validation.error) return res.status(422).send(validation.error.details[0].message);
+
+    if(!participant) return res.status(422).send('Faça login novamente');
+
     try{
         await db.collection('messages').insertOne(message);
         res.sendStatus(201);
