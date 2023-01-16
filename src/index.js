@@ -2,7 +2,8 @@ import express, {json} from 'express';
 import cors from 'cors';
 import {MongoClient} from 'mongodb';
 import dotenv from 'dotenv';
-import joi from 'joi';
+//import joi from 'joi';
+import chalk from 'chalk';
 
 dotenv.config();
 
@@ -19,19 +20,29 @@ let db;
 mongoClient.connect()
     .then(() => {
         db = mongoClient.db('projeto13-batepapo-uol-api');
-        console.log("Conectou"); 
+        console.log(chalk.green.bold('Banco conectado')); 
     })
     .catch(() => 
-        console.log("Não conectou")
+        console.log(chalk.red.bold('Banco não conectou'))
     )
 
 const users = [];
+const messages = [];
 
-app.post('/participants', (req,res) => {
+app.post('/participants', async (req,res) => {
     const {name} = req.body;
     
-    users.push(name);
-    res.sendStatus(201);
+    try{
+        const users = await db.collection('participants').insertOne({
+            name: name,
+            lastStatus: Date.now()
+        });
+        res.sendStatus(201);
+        mongoClient.close();
+    } catch(error){
+        res.sendStatus(422);
+        mongoClient.close();
+    }
 });
 
 app.get('/participants', (req, res) => {
@@ -45,7 +56,7 @@ app.post('/messages', (req, res) => {
         text: 'oi galera', 
         type: 'message', 
     };
-    message.push(message);
+    messages.push(message);
     res.sendStatus(201);
 });
 
@@ -58,5 +69,5 @@ app.post('/status', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log('Server running on port ' + PORT);
+    console.log(chalk.yellow.bold('Server running on port ' + PORT));
 }); 
