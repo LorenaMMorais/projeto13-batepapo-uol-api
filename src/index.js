@@ -26,31 +26,33 @@ mongoClient.connect()
         console.log(chalk.red.bold('Banco não conectou'))
     )
 
-const users = [];
 const messages = [];
 
 app.post('/participants', async (req,res) => {
     const {name} = req.body;
     
     try{
-        const users = await db.collection('participants').insertOne({
+        await db.collection('participants').insertOne({
             name: name,
             lastStatus: Date.now()
         });
         res.sendStatus(201);
-        mongoClient.close();
     } catch(error){
-        res.sendStatus(422);
-        mongoClient.close();
+        res.status(422).send('Não foi possível cadastrar o participante');
     }
 });
 
 app.get('/participants', (req, res) => {
-    res.send(users);
+    try{
+        const participants = db.collection('participants').find({}).toArray();
+        res.send(participants);
+    } catch(error){
+        res.status(500).send('Não foi possível obter participantes');
+    }
 });
 
-app.post('/messages', (req, res) => {
-    const {to, text, type} = req.body;
+app.post('/messages', async (req, res) => {
+    const {to, text, type} = req.body; 
     const message = {
         to: 'Todos', 
         text: 'oi galera', 
